@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:tflite/tflite.dart';
@@ -14,7 +13,7 @@ class Camera extends StatefulWidget {
   Camera(this.cameras, this.setRecognitions);
 
   @override
-  State<Camera> createState() => _CameraState();
+  _CameraState createState() => _CameraState();
 }
 
 class _CameraState extends State<Camera> {
@@ -36,27 +35,26 @@ class _CameraState extends State<Camera> {
         return;
       }
       setState(() {});
-    });
 
-    //สตรีมรูปภาพที่จับภาพเฟรมจากกล้องอย่างต่อเนื่องและส่งต่อไปยังเมธอด Tflite.runModelOnFrame() สำหรับการตรวจจับวัตถุ
-    cameraController.startImageStream((CameraImage image) {
-      if (!isDetecting) {
-        isDetecting = true;
-
-        Tflite.runModelOnFrame(
-          bytesList: image.planes.map((plane) {
-            return plane.bytes;
-          }).toList(),
-          imageHeight: image.height,
-          imageWidth: image.width,
-          numResults: 1,
-        ).then((value) {
-          if (value!.isNotEmpty) {
-            widget.setRecognitions(value);
-            isDetecting = false;
-          }
-        });
-      }
+      //สตรีมรูปภาพที่จับภาพเฟรมจากกล้องอย่างต่อเนื่องและส่งต่อไปยังเมธอด Tflite.runModelOnFrame() สำหรับการตรวจจับวัตถุ
+      cameraController.startImageStream((image) {
+        if (!isDetecting) {
+          isDetecting = true;
+          Tflite.runModelOnFrame(
+            bytesList: image.planes.map((plane) {
+              return plane.bytes;
+            }).toList(),
+            imageHeight: image.height,
+            imageWidth: image.width,
+            numResults: 1,
+          ).then((value) {
+            if (value!.isNotEmpty) {
+              widget.setRecognitions(value);
+              isDetecting = false;
+            }
+          });
+        }
+      });
     });
   }
 
@@ -72,17 +70,22 @@ class _CameraState extends State<Camera> {
   Widget build(BuildContext context) {
     if (!cameraController.value.isInitialized) {
       return Container();
-    } else {
-      //Transform.scale ถูกใช้เพื่อปรับขนาดตัวอย่างกล้องให้พอดีกับพื้นที่หน้าจอที่มีอยู่
-      //AspectRatio ถูกใช้เพื่อตั้งค่าอัตราส่วนของตัวอย่างกล้องให้ตรงกับอัตราส่วนของวิดีโอของกล้อง 
-      //ซึ่งจะต้องการทำเพื่อให้ตัวอย่างกล้องแสดงอย่างถูกต้องโดยไม่มีการเบี้ยวหรือตัดขอบ
-      return Transform.scale(
-        scale: 1 / cameraController.value.aspectRatio,
+    }
+
+    //Transform.scale ถูกใช้เพื่อปรับขนาดตัวอย่างกล้องให้พอดีกับพื้นที่หน้าจอที่มีอยู่
+    //AspectRatio ถูกใช้เพื่อตั้งค่าอัตราส่วนของตัวอย่างกล้องให้ตรงกับอัตราส่วนของวิดีโอของกล้อง
+    //ซึ่งจะต้องการทำเพื่อให้ตัวอย่างกล้องแสดงอย่างถูกต้องโดยไม่มีการเบี้ยวหรือตัดขอบ
+    final scale = 1 /
+        (cameraController.value.aspectRatio *
+            MediaQuery.of(context).size.aspectRatio);
+    return Transform.scale(
+      scale: scale,
+      child: Center(
         child: AspectRatio(
-          aspectRatio: cameraController.value.aspectRatio,
+          aspectRatio: scale,
           child: CameraPreview(cameraController),
         ),
-      );
-    }
+      ),
+    );
   }
 }
